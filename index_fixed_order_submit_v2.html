@@ -36,7 +36,7 @@ h1{font-family:"Italianno",cursive;font-weight:400;font-size:clamp(58px,15vw,96p
 .flavor-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:16px 0}.meter-card{border:1px solid var(--line);border-radius:14px;padding:10px 11px;background:var(--card)}.meter-label{font-size:12px;display:flex;justify-content:space-between;margin-bottom:7px}.meter{height:5px;background:#dfd3bd;border-radius:10px;overflow:hidden}.meter i{display:block;height:100%;background:var(--gold);border-radius:10px}
 .info-list{border-top:1px solid var(--line);margin-top:14px}.info-row{display:grid;grid-template-columns:72px 1fr;gap:10px;padding:11px 0;border-bottom:1px solid var(--line);font-size:13px}.info-row b{font-weight:500;color:var(--muted)}
 .order-btn{width:100%;margin-top:16px;border:none;border-radius:14px;background:var(--ink);color:var(--paper2);padding:14px;font-weight:600;cursor:pointer}
-.orderbar{position:fixed;z-index:12;left:50%;transform:translateX(-50%);bottom:14px;width:min(calc(100% - 26px),740px);background:#2e2419;color:#f8f1e5;border-radius:18px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 14px 40px rgba(0,0,0,.22)}.orderbar.hidden{display:none}.orderbar .grow{flex:1}.orderbar small{display:block;color:#d9c8ad;font-size:11px}.orderbar strong{font-size:14px}.orderbar button{border:1px solid #8e785c;background:transparent;color:#fff;border-radius:999px;padding:8px 12px;cursor:pointer}
+.orderbar{position:fixed;z-index:12;left:50%;transform:translateX(-50%);bottom:14px;width:min(calc(100% - 26px),740px);background:#2e2419;color:#f8f1e5;border-radius:18px;padding:10px 12px 10px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 14px 40px rgba(0,0,0,.22)}.orderbar.hidden{display:none}.orderbar .grow{flex:1}.orderbar small{display:block;color:#d9c8ad;font-size:11px}.orderbar strong{font-size:14px}.orderbar button{border:1px solid #8e785c;background:transparent;color:#fff;border-radius:999px;padding:8px 12px;cursor:pointer}.order-status{position:fixed;z-index:13;left:50%;transform:translateX(-50%);bottom:14px;width:min(calc(100% - 26px),740px);margin:0!important;background:#2e2419!important;color:#f8f1e5;border-color:#8e785c!important;box-shadow:0 14px 40px rgba(0,0,0,.22)}.order-status h3{color:#d9c8ad!important;font-size:12px!important;letter-spacing:.08em}.order-status[data-status="rejected"]{background:var(--wine)!important}.order-status[data-status="completed"]{background:#43513f!important}
 .drawer{position:fixed;inset:0;z-index:30;display:none}.drawer.show{display:block}.drawer-panel{position:absolute;right:0;top:0;bottom:0;width:min(92vw,430px);background:var(--paper2);padding:22px 18px;overflow:auto}.drawer h2{font-family:"Cormorant Garamond",serif;font-size:32px;margin:8px 0 4px}.order-item{display:grid;grid-template-columns:1fr auto;gap:8px;padding:13px 0;border-bottom:1px solid var(--line)}.order-item .name{font-family:"Cormorant Garamond",serif;font-size:21px}.order-item small{color:var(--muted)}.qty{display:flex;align-items:center;gap:8px}.qty button{width:28px;height:28px;border:1px solid var(--line);border-radius:50%;background:transparent}.guest{width:100%;border:1px solid var(--line);background:var(--card);border-radius:12px;padding:11px 12px;margin:12px 0}.order-summary{margin-top:16px;border:1px solid var(--line);border-radius:14px;padding:12px;background:var(--card);font-size:13px;line-height:1.8}.copy-btn{width:100%;margin-top:12px;border:none;border-radius:12px;background:var(--ink);color:white;padding:13px}
 .empty{text-align:center;color:var(--muted);padding:50px 20px}.recommend{border:1px solid var(--line);border-radius:18px;background:var(--card);padding:15px;margin-top:16px}.recommend h3{font-family:"Cormorant Garamond";font-size:23px;margin:0 0 8px}.prefs{display:flex;gap:7px;flex-wrap:wrap}.pref{border:1px solid var(--line);background:transparent;border-radius:999px;padding:7px 10px;font-size:12px}.pref.active{background:var(--wine);color:white;border-color:var(--wine)}
 .toast{position:fixed;z-index:40;left:50%;bottom:90px;transform:translateX(-50%) translateY(20px);opacity:0;background:#2e2419;color:#fff;padding:9px 14px;border-radius:999px;font-size:12px;transition:.25s;pointer-events:none}.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -107,9 +107,9 @@ h1{font-family:"Italianno",cursive;font-weight:400;font-size:clamp(58px,15vw,96p
     <button class="copy-btn" id="copyOrder">复制给 Juge 的点单</button>
   </div>
 </div>
-<div class="recommend" id="orderStatusBox" hidden style="margin:20px 0;">
+<div class="recommend order-status" id="orderStatusBox" hidden aria-live="polite">
   <h3>订单状态</h3>
-  <div id="orderStatusText"></div>
+  <div id="orderStatusText" style="white-space:pre-line"></div>
 </div>
 <div class="toast" id="toast"></div>
 
@@ -167,7 +167,7 @@ $('#copyOrder').onclick=async()=>{
    const d=drinks.find(x=>x.id==id);
    return {
      drink_id:d.id,
-     drink_name:d.cn,
+     cocktail_name:d.en,
      quantity:orders[id]
    };
  });
@@ -195,13 +195,20 @@ $('#copyOrder').onclick=async()=>{
 
    const data=await res.json();
 
-   if(data.success){
-      localStorage.setItem('lastOrderId', data.order.id);
-      await navigator.clipboard.writeText(text);
+   const orderId=data.order?.id ?? data.order_id ?? data.id;
+   if(res.ok && data.success && orderId){
+      localStorage.setItem('orderId', String(orderId));
+      localStorage.setItem('lastOrderId', String(orderId));
+      orders={};
+      saveOrders();
+      $('#drawer').classList.remove('show');
+      document.body.style.overflow='';
+      $('#guest').value='';
+      try{ await navigator.clipboard.writeText(text); }catch(e){ console.warn('复制点单失败',e); }
       toast('订单已提交给 Juge');
-      checkOrderStatus();
+      await checkOrderStatus();
    }else{
-      toast('提交失败');
+      toast(data.message || '提交失败');
    }
 
  }catch(e){
@@ -210,7 +217,7 @@ $('#copyOrder').onclick=async()=>{
  }
 };
 async function checkOrderStatus(){
-  const id = localStorage.getItem('lastOrderId');
+  const id = localStorage.getItem('orderId') || localStorage.getItem('lastOrderId');
   if(!id) return;
 
   try{
@@ -220,28 +227,27 @@ async function checkOrderStatus(){
 
     const data = await res.json();
 
-    if(!data.success) return;
+    if(!res.ok || !data.success || !data.order) return;
 
     const order=data.order;
     const box=document.querySelector('#orderStatusBox');
     const text=document.querySelector('#orderStatusText');
 
     box.hidden=false;
+    box.dataset.status=order.status || 'waiting';
 
     if(order.status==="rejected"){
-      text.innerHTML =
-      `Juge 已拒绝你的订单<br>
-       原因：${order.reject_reason || '未填写'}<br>
-       备注：${order.reject_note || '无'}`;
+      text.textContent =
+      `Juge 已拒绝你的订单\n原因：${order.reject_reason || '未填写'}\n备注：${order.reject_note || '无'}`;
     }
     else if(order.status==="making"){
-      text.innerHTML='Juge 正在制作你的订单 🍸';
+      text.textContent='Juge 正在制作你的订单 🍸';
     }
     else if(order.status==="completed"){
-      text.innerHTML='你的订单已经完成，可以享用了 🍸';
+      text.textContent='你的订单已经完成，可以享用了 🍸';
     }
     else{
-      text.innerHTML='订单已收到，等待 Juge 处理。';
+      text.textContent='订单已收到，等待 Juge 处理。';
     }
 
   }catch(e){
@@ -249,6 +255,7 @@ async function checkOrderStatus(){
   }
 }
 
+checkOrderStatus();
 setInterval(checkOrderStatus,5000);
 
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1500)}
